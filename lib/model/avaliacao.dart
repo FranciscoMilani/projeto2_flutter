@@ -17,11 +17,4 @@ class Avaliacao {
       contagem: json['count'] ?? 0,
     );
   }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'taxa': taxa,
-      'contagem': contagem,
-    };
-  }
 }
