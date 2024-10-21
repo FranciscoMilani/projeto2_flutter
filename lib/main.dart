@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:projeto_avaliativo_2/screen/home_screen.dart';
+import 'package:projeto_avaliativo_2/screen/auth_screen.dart';
 
 void main() {
-  runApp(const MainApp());
+  runApp(MyApp());
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
-
+class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      title: "Trabalho 2",
-      home: MainScreen(),
-    );
+    return MaterialApp(title: 'Gerenciador de Produtos', home: AuthScreen());
   }
 }
