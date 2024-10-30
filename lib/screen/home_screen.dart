@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:projeto_avaliativo_2/model/produto.dart';
 import 'package:projeto_avaliativo_2/screen/produto_form_screen.dart';
+import 'package:projeto_avaliativo_2/database/banco_helper.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -12,6 +13,7 @@ class ProdutoListScreen extends StatefulWidget {
 }
 
 class _ProdutoListScreenState extends State<ProdutoListScreen> {
+  BancoHelper bdHelper = BancoHelper();
   List<Produto> produtos = List.empty();
   bool isLoading = true;
 
@@ -19,6 +21,7 @@ class _ProdutoListScreenState extends State<ProdutoListScreen> {
   void initState() {
     consultar();
     super.initState();
+    bdHelper.iniciarBD();
   }
 
   void deletarProduto(int id) {
@@ -76,15 +79,26 @@ class _ProdutoListScreenState extends State<ProdutoListScreen> {
 
   Future<void> consultar() async {
     try {
+      final dadosArmazenados = await bdHelper.buscarTodosProdutos();
+
+      if (dadosArmazenados.isNotEmpty){
+        setState(() {
+          produtos = dadosArmazenados;
+          isLoading = false;
+        });
+
+        return;
+      }
+
       return http
           .get(Uri.parse('https://fakestoreapi.com/products'))
-          .then((data) {
+          .then((data) async {
         if (data.statusCode == 200) {
-          final produtos = jsonDecode(data.body) as List;
+          final produtosEntities = (jsonDecode(data.body) as List)
+              .map((data) => Produto.fromJson(data))
+              .toList();
 
-          var produtosEntities = produtos.map((produto) {
-            return Produto.fromJson(produto);
-          }).toList();
+          await bdHelper.inserirProdutos(produtosEntities);
 
           setState(() {
             this.produtos = produtosEntities;
@@ -95,7 +109,7 @@ class _ProdutoListScreenState extends State<ProdutoListScreen> {
         }
       });
     } catch (e) {
-      print('Error occurred: $e');
+      print('Erro na consulta de produtos: $e');
       setState(() {
         isLoading = false;
       });

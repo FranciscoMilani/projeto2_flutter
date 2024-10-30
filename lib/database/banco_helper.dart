@@ -39,8 +39,8 @@ class BancoHelper {
           ${TabelaProduto.colunaDescricao} TEXT NOT NULL,
           ${TabelaProduto.colunaCategoria} TEXT NOT NULL,
           ${TabelaProduto.colunaUrlImagem} INTEGER NOT NULL,
-          ${TabelaAvaliacao.colunaId} INTEGER,
-          FOREIGN KEY (rating_id) REFERENCES ${TabelaAvaliacao.tabela}(id)
+          id_avaliacao INTEGER,
+          FOREIGN KEY (id_avaliacao) REFERENCES ${TabelaAvaliacao.tabela}(id)
         )
       ''');
   }
@@ -58,18 +58,52 @@ class BancoHelper {
     //Estava-se na 2 e optou-se por regredir para a 1
   }
 
-  Future<int> inserir(Map<String, dynamic> row) async {
+  Future<int> inserirProduto(Map<String, dynamic> row) async {
     await iniciarBD();
     return await _bancoDeDados.insert(TabelaProduto.tabela, row);
   }
 
-  Future<int> deletar(int idPessoa) async {
+  Future<void> inserirProdutos(List<Produto> produtos) async {
+    final batch = _bancoDeDados.batch();
+    for (var produto in produtos) {
+      batch.insert(
+        TabelaProduto.tabela,
+        produto.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+
+  Future<void> inserirProdutoComAvaliacao(Map<String, dynamic> json) async {
+    Avaliacao avaliacao = Avaliacao(
+      taxa: json['rating']?['rate']?.toDouble() ?? 0.0,
+      contagem: json['rating']?['count'] ?? 0,
+    );
+
+    int avaliacaoId = await _bancoDeDados.insert(
+      TabelaAvaliacao.tabela,
+      avaliacao.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+
+    Produto produto = Produto.fromJson(json);
+
+    await _bancoDeDados.insert(
+      TabelaProduto.tabela,
+      produto.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<int> deletarProduto(int idPessoa) async {
     await iniciarBD();
     return _bancoDeDados.delete(TabelaProduto.tabela,
         where: '${TabelaProduto.colunaId} = ?', whereArgs: [idPessoa]);
   }
 
-  Future<List<Produto>> buscarProdutos() async {
+  Future<List<Produto>> buscarTodosProdutos() async {
     await iniciarBD();
 
     final List<Map<String, Object?>> dbProducts =
@@ -85,7 +119,7 @@ class BancoHelper {
       r.${TabelaAvaliacao.colunaContagem} AS rContagem
     FROM ${TabelaProduto.tabela} p
     LEFT JOIN ${TabelaAvaliacao.tabela} r
-    ON p.rating_id = r.id
+    ON p.id_avaliacao = r.id
   ''');
 
     return [

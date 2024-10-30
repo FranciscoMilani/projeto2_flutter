@@ -2,7 +2,10 @@ class Avaliacao {
   double taxa;
   int contagem;
 
-  Avaliacao({required this.taxa, required this.contagem});
+  Avaliacao({
+    required this.taxa,
+    required this.contagem,
+  });
 
   Map<String, Object?> toMap() {
     return {

@@ -24,7 +24,7 @@ class Produto {
       'id': id,
       'nome': nome,
       'preco': preco,
-      'avaliacao': avaliacao,
+      'avaliacao': avaliacao.toMap(),
       'categoria': categoria,
       'descricao': descricao,
       'urlImagem': urlImagem,
@@ -46,5 +46,12 @@ class Produto {
       descricao: json['description'] ?? '',
       urlImagem: json['image'] ?? '',
     );
+  }
+
+  Map<String, dynamic> toJsonWithAvaliacao() {
+    return {
+      ...toMap(),
+      'avaliacao': avaliacao.toMap(), // Ensure this returns the correct fields for Avaliacao
+    };
   }
 }
