@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:projeto_avaliativo_2/screen/home_screen.dart';
 
 class AuthScreen extends StatefulWidget {
+  const AuthScreen({super.key});
+
   @override
   State<AuthScreen> createState() => _AuthScreenState();
 }
@@ -18,6 +19,7 @@ class _AuthScreenState extends State<AuthScreen> {
     super.initState();
   }
 
+  // Autentica usuário via biometria
   Future<void> _authenticate() async {
     bool authenticated = false;
     try {
@@ -37,21 +39,21 @@ class _AuthScreenState extends State<AuthScreen> {
 
     if (authenticated) {
       setState(() {
-        _authStatus = "Autenticação bem-sucedida!";
+        _authStatus = "Autenticado com sucesso!";
         _carregarTelaProdutos();
       });
     } else {
       setState(() {
-        _authStatus = "Falha na autenticação.";
+        _authStatus = "Falha ao autenticar-se.";
       });
     }
   }
 
   Future<void> _carregarTelaProdutos() async {
-    await Future.delayed(Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 1));
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => ProdutoListScreen()),
+      MaterialPageRoute(builder: (context) => const ProdutoListScreen()),
     );
   }
 
@@ -66,19 +68,19 @@ class _AuthScreenState extends State<AuthScreen> {
             Text(
               _authStatus,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 40),
+            const SizedBox(height: 40),
             ElevatedButton(
               onPressed: _authenticate,
-              child: Icon(
+              child: const Icon(
                 Icons.fingerprint,
                 size: 100,
                 color: Colors.blue,
               ),
             ),
-            SizedBox(height: 20),
-            Text(
+            const SizedBox(height: 20),
+            const Text(
               'Toque na biometria para iniciar autenticação',
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),

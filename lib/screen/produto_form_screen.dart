@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:projeto_avaliativo_2/model/avaliacao.dart';
 import 'package:projeto_avaliativo_2/model/produto.dart';
 
 class ProdutoFormScreen extends StatefulWidget {
   final Produto? produto;
   final Function(Produto) onSalvar;
 
-  ProdutoFormScreen({this.produto, required this.onSalvar});
+  const ProdutoFormScreen({super.key, this.produto, required this.onSalvar});
 
   @override
   _ProdutoFormScreenState createState() => _ProdutoFormScreenState();
@@ -20,7 +19,8 @@ class _ProdutoFormScreenState extends State<ProdutoFormScreen> {
   late double preco;
   late String categoria;
   late String urlImagem;
-  late Avaliacao avaliacao;
+  late double avaliacao;
+  late int contagemAvaliacao;
 
   @override
   void initState() {
@@ -31,7 +31,8 @@ class _ProdutoFormScreenState extends State<ProdutoFormScreen> {
     preco = widget.produto?.preco ?? 0.0;
     urlImagem = widget.produto?.urlImagem ?? '';
     categoria = widget.produto?.categoria ?? '';
-    avaliacao = widget.produto?.avaliacao ?? Avaliacao(taxa: 0.0, contagem: 0);
+    avaliacao = widget.produto?.avaliacao ?? 0.0;
+    contagemAvaliacao = widget.produto?.contagemAvaliacao ?? 0;
   }
 
   void _salvar() {
@@ -44,10 +45,8 @@ class _ProdutoFormScreenState extends State<ProdutoFormScreen> {
         preco: preco,
         urlImagem: urlImagem,
         categoria: categoria,
-        avaliacao: Avaliacao(
-          taxa: avaliacao.taxa,
-          contagem: avaliacao.contagem,
-        ),
+        avaliacao: avaliacao,
+        contagemAvaliacao: contagemAvaliacao,
       ));
       Navigator.pop(context);
     }
@@ -60,14 +59,26 @@ class _ProdutoFormScreenState extends State<ProdutoFormScreen> {
         title: Text(id == 0 ? 'Novo Produto' : 'Editar Produto'),
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
+              if (urlImagem.isNotEmpty)
+                Center(
+                  child: Image.network(
+                    urlImagem,
+                    height: 200,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(Icons.image_not_supported,
+                          size: 100, color: Colors.grey);
+                    },
+                  ),
+                ),
+              const SizedBox(height: 16),
               TextFormField(
                 initialValue: nome,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Nome',
                   border: OutlineInputBorder(),
                   contentPadding:
@@ -75,7 +86,7 @@ class _ProdutoFormScreenState extends State<ProdutoFormScreen> {
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Nome é obrigatório';
+                    return 'O campo "Nome" é obrigatório';
                   }
                   return null;
                 },
@@ -83,10 +94,10 @@ class _ProdutoFormScreenState extends State<ProdutoFormScreen> {
                   nome = value!;
                 },
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               TextFormField(
                 initialValue: descricao,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Descrição',
                   border: OutlineInputBorder(),
                   contentPadding:
@@ -96,10 +107,10 @@ class _ProdutoFormScreenState extends State<ProdutoFormScreen> {
                   descricao = value!;
                 },
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               TextFormField(
                 initialValue: preco.toString(),
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Preço',
                   border: OutlineInputBorder(),
                   contentPadding:
@@ -111,7 +122,7 @@ class _ProdutoFormScreenState extends State<ProdutoFormScreen> {
                     return 'Preço inválido';
                   }
                   if (double.parse(value) <= 0) {
-                    return 'Preço deve ser maior que zero';
+                    return 'Preço deve ser maior do que zero';
                   }
                   return null;
                 },
@@ -119,10 +130,10 @@ class _ProdutoFormScreenState extends State<ProdutoFormScreen> {
                   preco = double.parse(value!);
                 },
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               TextFormField(
                 initialValue: urlImagem,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Url de Imagem',
                   border: OutlineInputBorder(),
                   contentPadding:
@@ -132,10 +143,10 @@ class _ProdutoFormScreenState extends State<ProdutoFormScreen> {
                   urlImagem = value!;
                 },
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               TextFormField(
-                initialValue: avaliacao.taxa.toString(),
-                decoration: InputDecoration(
+                initialValue: avaliacao.toString(),
+                decoration: const InputDecoration(
                   labelText: 'Avaliação (0 a 5)',
                   border: OutlineInputBorder(),
                   contentPadding:
@@ -153,13 +164,36 @@ class _ProdutoFormScreenState extends State<ProdutoFormScreen> {
                   return null;
                 },
                 onSaved: (value) {
-                  avaliacao.taxa = double.parse(value!);
+                  avaliacao = double.parse(value!);
                 },
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 12),
+              TextFormField(
+                initialValue: contagemAvaliacao.toString(),
+                decoration: const InputDecoration(
+                  labelText: 'Contagem de Avaliações',
+                  border: OutlineInputBorder(),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || int.tryParse(value) == null) {
+                    return 'Contagem de avaliações inválida';
+                  }
+                  if (int.parse(value) < 0) {
+                    return 'Contagem de avaliações deve ser um número positivo';
+                  }
+                  return null;
+                },
+                onSaved: (value) {
+                  contagemAvaliacao = int.parse(value!);
+                },
+              ),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _salvar,
-                child: Text('Salvar'),
+                child: const Text('Salvar'),
               ),
             ],
           ),

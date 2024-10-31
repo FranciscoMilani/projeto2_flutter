@@ -13,33 +13,86 @@ class ProdutoListScreen extends StatefulWidget {
 }
 
 class _ProdutoListScreenState extends State<ProdutoListScreen> {
-  BancoHelper bdHelper = BancoHelper();
-  List<Produto> produtos = List.empty();
+  List<Produto> produtos = [];
   bool isLoading = true;
+  bool primeiroUso = true;
 
   @override
   void initState() {
-    consultar();
     super.initState();
-    bdHelper.iniciarBD();
+    consultar();
   }
 
-  void deletarProduto(int id) {
+  // Sincroniza com os dados da API
+  Future<void> sincronizarDados() async {
     setState(() {
-      produtos.removeWhere((produto) => produto.id == id);
+      isLoading = true;
     });
-  }
 
-  void editarProduto(Produto produto) {
-    setState(() {
-      if (produto.id == 0) {
-        produto.id = produtos.isEmpty ? 1 : produtos.last.id + 1;
-        produtos.add(produto);
+    try {
+      final response = await http.get(Uri.parse('https://fakestoreapi.com/products'));
+      if (response.statusCode == 200) {
+        final List<dynamic> produtosApi = jsonDecode(response.body);
+
+        List<Produto> produtosList = produtosApi.map((produtoJson) {
+          return Produto.fromJson(produtoJson);
+        }).toList();
+
+        final dbHelper = BancoHelper();
+        for (var produto in produtosList) {
+          await dbHelper.upsertProduto(produto);
+        }
+
+        setState(() {
+          produtos = produtosList;
+          primeiroUso = false;
+        });
       } else {
-        int index = produtos.indexWhere((p) => p.id == produto.id);
-        produtos[index] = produto;
+        throw Exception('Erro ao sincronizar dados');
       }
+    } catch (e) {
+      print('Erro de sincronização dos dados: $e');
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> consultar() async {
+    setState(() {
+      isLoading = true;
     });
+
+    final dbHelper = BancoHelper();
+    await dbHelper.iniciarBD();
+    final produtosLocal = await dbHelper.buscarProdutos();
+
+    // Busca do banco se houver produto. Se não, busca da API
+    if (produtosLocal.isNotEmpty) {
+      setState(() {
+        produtos = produtosLocal;
+        isLoading = false;
+      });
+    } else if (primeiroUso) {
+      await sincronizarDados();
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> deletarProduto(int id) async {
+    final dbHelper = BancoHelper();
+    await dbHelper.deletar(id);
+    await consultar();
+  }
+
+  Future<void> editarProduto(Produto produto) async {
+    final dbHelper = BancoHelper();
+    await dbHelper.upsertProduto(produto);
+    await consultar();
   }
 
   void _abrirTelaEdicao([Produto? produto]) {
@@ -58,62 +111,23 @@ class _ProdutoListScreenState extends State<ProdutoListScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Confirmar exclusão'),
+        title: const Text('Confirmar exclusão'),
         content: Text('Tem certeza que deseja excluir "${produto.nome}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar'),
+            child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () {
-              deletarProduto(produto.id);
+            onPressed: () async {
+              await deletarProduto(produto.id);
               Navigator.pop(context);
             },
-            child: Text('Confirmar'),
+            child: const Text('Confirmar'),
           ),
         ],
       ),
     );
-  }
-
-  Future<void> consultar() async {
-    try {
-      final dadosArmazenados = await bdHelper.buscarTodosProdutos();
-
-      if (dadosArmazenados.isNotEmpty){
-        setState(() {
-          produtos = dadosArmazenados;
-          isLoading = false;
-        });
-
-        return;
-      }
-
-      return http
-          .get(Uri.parse('https://fakestoreapi.com/products'))
-          .then((data) async {
-        if (data.statusCode == 200) {
-          final produtosEntities = (jsonDecode(data.body) as List)
-              .map((data) => Produto.fromJson(data))
-              .toList();
-
-          await bdHelper.inserirProdutos(produtosEntities);
-
-          setState(() {
-            this.produtos = produtosEntities;
-            isLoading = false;
-          });
-        } else {
-          throw Exception('Buscar produtos: Erro chamada HTTP');
-        }
-      });
-    } catch (e) {
-      print('Erro na consulta de produtos: $e');
-      setState(() {
-        isLoading = false;
-      });
-    }
   }
 
   @override
@@ -128,64 +142,63 @@ class _ProdutoListScreenState extends State<ProdutoListScreen> {
         children: [
           Expanded(
             child: isLoading
-                ? Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator())
                 : ListView.builder(
-                    itemCount: produtos.length,
-                    itemBuilder: (context, index) {
-                      final produto = produtos[index];
-                      return Card(
-                        elevation: 4,
-                        margin:
-                            EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                        child: ListTile(
-                          title: Text(produto.nome,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                produto.descricao ?? "",
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'Preço: R\$${produto.preco.toStringAsFixed(2)}',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          leading: (produto.urlImagem != null &&
-                                  produto.urlImagem!.isNotEmpty)
-                              ? ClipOval(
-                                  child: Image.network(
-                                  '${produto.urlImagem}',
-                                  width: 50,
-                                  height: 50,
-                                  fit: BoxFit.scaleDown,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Icon(Icons.error,
-                                        size: 50, color: Colors.red);
-                                  },
-                                ))
-                              : Icon(Icons.image, size: 50),
-                          trailing: IconButton(
-                            icon: Icon(Icons.delete),
-                            onPressed: () => _confirmarDelecao(produto),
-                          ),
-                          onTap: () => _abrirTelaEdicao(produto),
+              itemCount: produtos.length,
+              itemBuilder: (context, index) {
+                final produto = produtos[index];
+                return Card(
+                  elevation: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: ListTile(
+                    title: Text(produto.nome,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          produto.descricao ?? "",
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      );
-                    },
+                        const SizedBox(height: 4),
+                        Text(
+                          'Preço: R\$${produto.preco.toStringAsFixed(2)}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    leading: (produto.urlImagem != null &&
+                        produto.urlImagem!.isNotEmpty)
+                        ? ClipOval(
+                        child: Image.network(
+                          '${produto.urlImagem}',
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.scaleDown,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(Icons.error,
+                                size: 50, color: Colors.red);
+                          },
+                        ))
+                        : const Icon(Icons.image, size: 50),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () => _confirmarDelecao(produto),
+                    ),
+                    onTap: () => _abrirTelaEdicao(produto),
                   ),
+                );
+              },
+            ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => {} /*{ _sincronizarDados() }*/, // TODO
-        child: Icon(Icons.replay_outlined),
+        onPressed: sincronizarDados,
+        child: const Icon(Icons.replay_outlined),
       ),
     );
   }
