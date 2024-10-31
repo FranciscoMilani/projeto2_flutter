@@ -68,7 +68,7 @@ class BancoHelper {
   }
 
   // Deleta um produto por ID
-  Future<int> deletar(int id) async {
+  Future<int> deletarProduto(int id) async {
     final db = await bancoDeDados;
     return await db.delete('produto', where: 'id = ?', whereArgs: [id]);
   }

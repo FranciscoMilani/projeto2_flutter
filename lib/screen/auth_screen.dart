@@ -21,9 +21,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
   // Autentica usuário via biometria
   Future<void> _authenticate() async {
-    bool authenticated = false;
+    bool autenticado = false;
     try {
-      authenticated = await auth.authenticate(
+      autenticado = await auth.authenticate(
         localizedReason: 'Use sua digital para autenticar',
         options: const AuthenticationOptions(
           stickyAuth: true,
@@ -37,14 +37,10 @@ class _AuthScreenState extends State<AuthScreen> {
       return;
     }
 
-    if (authenticated) {
+    if (autenticado) {
       setState(() {
         _authStatus = "Autenticado com sucesso!";
         _carregarTelaProdutos();
-      });
-    } else {
-      setState(() {
-        _authStatus = "Falha ao autenticar-se.";
       });
     }
   }

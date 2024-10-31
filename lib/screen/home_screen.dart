@@ -51,7 +51,7 @@ class _ProdutoListScreenState extends State<ProdutoListScreen> {
         throw Exception('Erro ao sincronizar dados');
       }
     } catch (e) {
-      print('Erro de sincronização dos dados: $e');
+      print('Erro de sincronização de dados da API: $e');
     } finally {
       setState(() {
         isLoading = false;
@@ -85,7 +85,7 @@ class _ProdutoListScreenState extends State<ProdutoListScreen> {
 
   Future<void> deletarProduto(int id) async {
     final dbHelper = BancoHelper();
-    await dbHelper.deletar(id);
+    await dbHelper.deletarProduto(id);
     await consultar();
   }
 
@@ -95,7 +95,7 @@ class _ProdutoListScreenState extends State<ProdutoListScreen> {
     await consultar();
   }
 
-  void _abrirTelaEdicao([Produto? produto]) {
+  void _abrirTelaEdicao(Produto? produto) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -164,9 +164,19 @@ class _ProdutoListScreenState extends State<ProdutoListScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          'Preço: R\$${produto.preco.toStringAsFixed(2)}',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        Row(
+                          children: [
+                            const Icon(Icons.attach_money, size: 20),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${produto.preco.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -197,8 +207,10 @@ class _ProdutoListScreenState extends State<ProdutoListScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: sincronizarDados,
-        child: const Icon(Icons.replay_outlined),
+        onPressed: isLoading ? null : sincronizarDados,
+        backgroundColor: isLoading ? Colors.grey : Colors.blue,
+        elevation: 5.0,
+        child: const Icon(Icons.replay_outlined, color: Colors.white),
       ),
     );
   }

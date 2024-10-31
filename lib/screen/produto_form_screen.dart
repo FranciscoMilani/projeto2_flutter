@@ -22,6 +22,13 @@ class _ProdutoFormScreenState extends State<ProdutoFormScreen> {
   late double avaliacao;
   late int contagemAvaliacao;
 
+  final List<String> categorias = [
+    "electronics",
+    "jewelery",
+    "men's clothing",
+    "women's clothing"
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -68,7 +75,7 @@ class _ProdutoFormScreenState extends State<ProdutoFormScreen> {
                 Center(
                   child: Image.network(
                     urlImagem,
-                    height: 200,
+                    height: 150,
                     errorBuilder: (context, error, stackTrace) {
                       return const Icon(Icons.image_not_supported,
                           size: 100, color: Colors.grey);
@@ -144,6 +151,32 @@ class _ProdutoFormScreenState extends State<ProdutoFormScreen> {
                 },
               ),
               const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: categoria.isNotEmpty ? categoria : null,
+                decoration: const InputDecoration(
+                  labelText: 'Categoria',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                items: categorias.map((String categoria) {
+                  return DropdownMenuItem<String>(
+                    value: categoria,
+                    child: Text(categoria),
+                  );
+                }).toList(),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'O campo "Categoria" é obrigatório';
+                  }
+                  return null;
+                },
+                onChanged: (value) {
+                  setState(() {
+                    categoria = value!;
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
               TextFormField(
                 initialValue: avaliacao.toString(),
                 decoration: const InputDecoration(
@@ -193,8 +226,21 @@ class _ProdutoFormScreenState extends State<ProdutoFormScreen> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _salvar,
-                child: const Text('Salvar'),
-              ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade900,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  elevation: 6.0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Salvar',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              )
+
             ],
           ),
         ),
